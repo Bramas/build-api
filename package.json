@@ -1,0 +1,24 @@
+{
+  "name": "build-api",
+  "version": "1.0.0",
+  "description": "``` docker build -t buildapi . docker run --rm -v $PWD/template:/var/src buildapi ```",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bramas/build-api.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Bramas/build-api/issues"
+  },
+  "homepage": "https://github.com/Bramas/build-api#readme",
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "express": "^4.15.3",
+    "fs-extra": "^4.0.1"
+  }
+}
