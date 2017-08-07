@@ -18,15 +18,22 @@ process.on('unhandledRejection', (reason, p) => {
 app.post('/build', async function (req, res) {
   console.log(req.body);
   if(req.body.url) {
+	const main = req.body.main || 'main.c';
+	const target = req.body.target || main.replace('.c', '');
   	const nonce = (await crypto.randomBytes(25)).toString('hex');
   	const tmppath=__dirname+'/tmp/'+nonce;
 	request.get(req.body.url)
 	.pipe(unzip.Extract({ path: tmppath }))
 	.on('close', async function() {
 		console.log('END');
-		const result = await build(tmppath, 3);
-  		await fs.remove(tmppath);
-  		res.send(JSON.stringify(result, null, 2));
+		try {
+			const result = await build(tmppath, 3, target, req.body.tests);
+  			await fs.remove(tmppath);
+  			res.send(JSON.stringify(result, null, 2));
+		} catch(e) {
+			res.send('{"error":"serveur error"}');
+			console.error(e);
+		}
 	}).on('error', function(e) {
 		console.error(e);
 		res.end('Erreur');
