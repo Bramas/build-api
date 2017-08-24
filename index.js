@@ -5,7 +5,7 @@ const request = require('request');
 const unzip = require('unzip-stream');
 const fs = require('fs-extra');
 const crypto = require('crypto');
-
+const stream = require('stream');
 var bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
@@ -16,14 +16,20 @@ process.on('unhandledRejection', (reason, p) => {
 });
 
 app.post('/build', async function (req, res) {
-  console.log(req.body);
-  if(req.body.url) {
+  if(req.body.url || req.body.data) {
 	const main = req.body.main || 'main.c';
 	const target = req.body.target || main.replace('.c', '');
   	const nonce = (await crypto.randomBytes(25)).toString('hex');
   	const tmppath=__dirname+'/tmp/'+nonce;
-	request.get(req.body.url)
-	.pipe(unzip.Extract({ path: tmppath }))
+	var dataStream;
+	if(req.body.url) {
+	  request.get(req.body.url);
+	}
+	else {
+	  dataStream = new stream.PassThrough();
+	  dataStream.end(new Buffer(req.body.data, 'base64'));
+	}
+	dataStream.pipe(unzip.Extract({ path: tmppath }))
 	.on('close', async function() {
 		console.log('END');
 		try {
@@ -39,7 +45,9 @@ app.post('/build', async function (req, res) {
 		res.end('Erreur');
 	});
   }
-
+  else {
+	res.end('ERROR');
+  }
 
 });
 
