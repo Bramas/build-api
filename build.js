@@ -66,7 +66,9 @@ module.exports = async function(tmpWD, timeout, target, tests) {
     if(tests.length > 0) {
       result.execution = [];
       for(var i in tests) {
-        result.execution.push(await runDockerCommand('./'+target+' '+tests[i].args, tmpWD, timeout, tests[i].stdin));
+	let args = tests[i].args || '';
+	let stdin = tests[i].stdin || null;
+        result.execution.push(await runDockerCommand('./'+target+' '+args, tmpWD, timeout, stdin));
       }
     } else {
       result.execution = await runDockerCommand('./'+target, tmpWD, timeout);
