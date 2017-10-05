@@ -6,9 +6,18 @@ const unzip = require('unzip-stream');
 const fs = require('fs-extra');
 const crypto = require('crypto');
 const stream = require('stream');
+const queue = require('express-queue');
 var bodyParser = require('body-parser');
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '50mb'}));
+app.use (function (error, req, res, next){
+    //Catch json error
+    console.log("json error", error, error.type);
+    res.status(500);
+    res.end('{"error": "JSON error"}');
+});
 
+
+app.use(queue({ activeLimit: 1 }));
 
 process.on('unhandledRejection', (reason, p) => {
   console.log('Unhandled Rejection at:', p, 'reason:', reason);

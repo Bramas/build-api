@@ -52,23 +52,40 @@ async function runDockerCommand(cmd, workingDirectory, timeout, stdin) {
   return result;
 }
 
+async function writeLocalFiles(tmpWD, files) {
+	if(!files) return;
+	for(var i in files) {
+		await fs.writeFile(tmpWD+'/'+i, new Buffer(files[i], 'base64'));
+	}
+}
+async function cleanLocalFiles(tmpWD, files) {
+        if(!files) return;
+        for(var i in files) {
+                await fs.remove(tmpWD+'/'+i);
+        }
+}
+
 /**
 * @param timeout in second, for the execution of the program
 */
 module.exports = async function(tmpWD, timeout, target, tests) {
-  if(target.match(/\W/)) {
+  if(target.match(/[^\w\-\_]/)) {
     throw new Error('the target is not acceptable');
     return; 
   }
   const result = {};
   try {
     result.compilation = await runDockerCommand('make '+target, tmpWD, 60);
+    if(result.compilation.error) return result;
+
     if(tests.length > 0) {
       result.execution = [];
       for(var i in tests) {
+	await writeLocalFiles(tmpWD, tests[i].localFiles);
 	let args = tests[i].args || '';
 	let stdin = tests[i].stdin || null;
         result.execution.push(await runDockerCommand('./'+target+' '+args, tmpWD, timeout, stdin));
+	await cleanLocalFiles(tmpWD, tests[i].localFiles);
       }
     } else {
       result.execution = await runDockerCommand('./'+target, tmpWD, timeout);
