@@ -4,6 +4,7 @@ const build = require('./build');
 const request = require('request');
 const unzip = require('unzip-stream');
 const fs = require('fs-extra');
+const path = require('path');
 const crypto = require('crypto');
 const stream = require('stream');
 const queue = require('express-queue');
@@ -30,6 +31,7 @@ app.post('/build', async function (req, res) {
 	const target = req.body.target || main.replace('.c', '');
   	const nonce = (await crypto.randomBytes(25)).toString('hex');
   	const tmppath=__dirname+'/tmp/'+nonce;
+	await fs.mkdir(tmppath);
 	var dataStream;
 	if(req.body.url) {
 	  request.get(req.body.url);
@@ -42,6 +44,14 @@ app.post('/build', async function (req, res) {
 	.on('close', async function() {
 		console.log('END');
 		try {
+			if(req.body.testMakefile) {
+				await fs.writeFile(path.join(tmppath,'Makefile'), new Buffer(req.body.testMakefile, 'base64'));
+			}
+			if(req.body.files) {
+			  for(let name in req.body.files) {
+                            await fs.writeFile(path.join(tmppath,name), new Buffer(req.body.files[name], 'base64'));
+			  }
+                        }
 			const result = await build(tmppath, 3, target, req.body.tests);
   			await fs.remove(tmppath);
   			res.send(JSON.stringify(result, null, 2));
