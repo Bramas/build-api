@@ -34,8 +34,7 @@ function safeWrite(data, writable, callback, offset) {
     safeWrite(data, writable, callback, offset + chunkSize);
   }
   if(!writable.write(data.slice(offset, offset + chunkSize))) {
-    //writable.once('drain', cb);
-    writable.end();
+    writable.once('drain', cb);
     console.log('write and drain', offset);
   } else {
     //setTimeout(cb, 50);
