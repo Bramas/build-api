@@ -34,11 +34,11 @@ function safeWrite(data, writable, callback, offset) {
     safeWrite(data, writable, callback, offset + chunkSize);
   }
   if(!writable.write(data.slice(offset, offset + chunkSize), () => { console.log(offset); cb() })) {
-    //writable.once('drain', cb);
-    //console.log('write and drain', offset);
+    writable.once('drain', cb);
+    console.log('write and drain', offset);
   } else {
     //setTimeout(cb, 50);
-    //process.nextTick(cb);
+    process.nextTick(cb);
   }
 }
 
