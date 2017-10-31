@@ -27,7 +27,7 @@ function safeWrite(data, writable, callback, offset) {
   let cb = () => {
     safeWrite(data, writable, callback, offset + chunkSize);
   }
-  if(!writable.write(data)) {
+  if(!writable.write(data.slice(offset, offset + chunkSize))) {
     writable.once('drain', cb);
   } else {
     process.nextTick(cb);
