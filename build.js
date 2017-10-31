@@ -20,8 +20,8 @@ function safeWrite(data, writable, callback, offset) {
   const chunkSize = 512;
   if(offset === 0) {
     writable.__closed =false;
-    writable.once('close', () => { console.log('close'); writable.__closed = true; });
-    writable.once('finish', () => { console.log('finish'); writable.__closed = true; });
+    writable.once('close', () => { writable.__closed = true; });
+    writable.once('finish', () => { writable.__closed = true; });
     writable.once('error', (e) => { console.log('onError', e); writable.__closed = true; });
   }
 
@@ -35,9 +35,7 @@ function safeWrite(data, writable, callback, offset) {
   }
   if(!writable.write(data.slice(offset, offset + chunkSize))) {
     writable.once('drain', cb);
-    console.log('write and drain', offset);
   } else {
-    //setTimeout(cb, 50);
     process.nextTick(cb);
   }
 }
@@ -82,7 +80,7 @@ async function runDockerCommand(cmd, workingDirectory, timeout, stdin) {
     await fs.writeFile(stdinFile, stdin);
   }*/
   const args = runArgs(containerName, workingDirectory, cmd.split(' ').filter(e => e.length != 0))
-  console.log('runDockerCommand:55', args.join(' '));
+  console.log('runDockerCommand', cmd);
   let startingTime = process.hrtime();
   const {stdout, stderr, error} = await exec(args, {timeout, stdin});
   if(timoutId) clearTimeout(timoutId);
