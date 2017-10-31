@@ -18,17 +18,23 @@ function runArgs(name, folder, args) {
 function safeWrite(data, writable, callback, offset) {
   offset = offset || 0;
   const chunkSize = 512;
+  if(offset === 0) {
+    writable.__closed =false;
+    writable.once('close', () => { writable.__closed = true; });
+    writable.once('finish', () => { writable.__closed = true; });
+    writable.once('error', (e) => { console.log(e); writable.__closed = true; });
+  }
 
   if(data.length <= offset) {
     callback();
     return;
   }
-  console.log(writable._writableState);
+  console.log(writable.__closed);
 
   let cb = () => {
     safeWrite(data, writable, callback, offset + chunkSize);
   }
-  if(!writable.write(data.slice(offset, offset + chunkSize))) {
+  if(!writable.write(data.slice(offset, offset + chunkSize, (e) => { console.log(e); }))) {
     writable.once('drain', cb);
     console.log('write and drain', offset);
   } else {
