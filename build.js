@@ -3,16 +3,30 @@ const util = require('util');
 const child_process = require('child_process');
 const fs = require('fs-extra');
 
-const RUN = 'docker run --name {2} --rm -v {1}:/var/src -i buildapi';
+const memoryLimit = process.env.MEMORY_LIMIT ? '--memory='+process.env.MEMORY_LIMIT:'';
+const RUN = 'docker run --name {2} --rm -v {1}:/var/src '+memoryLimit+' --memory-swap=-1 -i buildapi';
 
-function exec(cmd) {
+function runArgs(name, folder, args) {
+        let r = ['run', '--name', name, '--rm', '-v', folder+':/var/src', '-i', 'buildapi'];
+        for(i in args)
+                r.push(args[i]);
+        return r;
+}
+
+function exec(args, options) {
+  let {timeout, stdin} = options || {}
+  timeout = timeout || 0;
+  timeout *= 1000;
+
   return new Promise((acc, rej) => {
-    child_process.exec(cmd, function(err, stdout, stderr) {
+    const p = child_process.execFile('docker', args, {timeout}, function(err, stdout, stderr) {
       if(err)
         acc({error: {code:err.code, killed:err.killed, signal:err.signal}, stdout, stderr});
       else
         acc({stdout, stderr});
     });
+    if(stdin)
+      p.stdin.write(stdin);
   });
 }
 
@@ -24,21 +38,22 @@ async function runDockerCommand(cmd, workingDirectory, timeout, stdin) {
 
   var timeouterror = null;
   var timoutId = setTimeout(() => {
-    exec('docker kill '+containerName);
+    exec(['kill',containerName]);
     timoutId = null;
     timeouterror =  {
       timeout: timeout,
       message: "The process has been killed after "+timeout+" seconds"
     }
   }, timeout*1000);
-  let stdinFile = '/dev/null';
+  /*let stdinFile = '/dev/null';
   if(stdin) {
     stdinFile = workingDirectory+'/stdin';
     await fs.writeFile(stdinFile, stdin);
-  }
-  console.log(runCmd+' '+cmd+' < '+stdinFile);
+  }*/
+  const args = runArgs(containerName, workingDirectory, cmd.split(' ').filter(e => e.length != 0))
+  console.log('runDockerCommand:55', args.join(' '));
   let startingTime = process.hrtime();
-  const {stdout, stderr, error} = await exec(runCmd+' '+cmd+' < '+stdinFile);
+  const {stdout, stderr, error} = await exec(args, {timeout, stdin});
   if(timoutId) clearTimeout(timoutId);
   const result = {
     command: cmd,
@@ -46,7 +61,7 @@ async function runDockerCommand(cmd, workingDirectory, timeout, stdin) {
   };
   let duration = process.hrtime(startingTime);
   result.duration = duration[0] + Math.round(duration[1]/1000000);
-  
+
   if(error || timeouterror)
     result.error = Object.assign(error || {}, timeouterror || {});
 
@@ -75,7 +90,7 @@ async function cleanLocalFiles(tmpWD, files) {
 module.exports = async function(tmpWD, timeout, target, tests) {
   if(target.match(/[^\w\-\_]/)) {
     throw new Error('the target is not acceptable');
-    return; 
+    return;
   }
   const result = {};
   try {
