@@ -36,13 +36,17 @@ async function runDockerCommand(cmd, workingDirectory, timeout, stdin) {
     stdinFile = workingDirectory+'/stdin';
     await fs.writeFile(stdinFile, stdin);
   }
+  console.log(runCmd+' '+cmd+' < '+stdinFile);
+  let startingTime = process.hrtime();
   const {stdout, stderr, error} = await exec(runCmd+' '+cmd+' < '+stdinFile);
   if(timoutId) clearTimeout(timoutId);
   const result = {
     command: cmd,
     stdout
   };
-
+  let duration = process.hrtime(startingTime);
+  result.duration = duration[0] + Math.round(duration[1]/1000000);
+  
   if(error || timeouterror)
     result.error = Object.assign(error || {}, timeouterror || {});
 
@@ -75,7 +79,7 @@ module.exports = async function(tmpWD, timeout, target, tests) {
   }
   const result = {};
   try {
-    result.compilation = await runDockerCommand('make '+target, tmpWD, 60);
+    result.compilation = await runDockerCommand('make '+target, tmpWD, 15);
     if(result.compilation.error) return result;
 
     if(tests.length > 0) {
@@ -84,7 +88,8 @@ module.exports = async function(tmpWD, timeout, target, tests) {
 	await writeLocalFiles(tmpWD, tests[i].localFiles);
 	let args = tests[i].args || '';
 	let stdin = tests[i].stdin || null;
-        result.execution.push(await runDockerCommand('./'+target+' '+args, tmpWD, timeout, stdin));
+	let test_timeout = tests[i].timeout || 3;
+        result.execution.push(await runDockerCommand('./'+target+' '+args, tmpWD, test_timeout, stdin));
 	await cleanLocalFiles(tmpWD, tests[i].localFiles);
       }
     } else {
