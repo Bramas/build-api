@@ -7,7 +7,7 @@ const memoryLimit = process.env.MEMORY_LIMIT ? '--memory='+process.env.MEMORY_LI
 const RUN = 'docker run --name {2} --rm -v {1}:/var/src '+memoryLimit+' --memory-swap=-1 -i buildapi';
 
 function runArgs(name, folder, args) {
-        let r = ['run', '--name', name, '--rm', '-v', folder+':/var/src', '-i', 'buildapi'];
+        let r = ['run', '--name', name, '--rm', '-v', folder+':/var/src', '-i', 'buildapi', 'sh', '/usr/bin/run-in'];
         for(i in args)
                 r.push(args[i]);
         return r;
