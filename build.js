@@ -13,6 +13,27 @@ function runArgs(name, folder, args) {
         return r;
 }
 
+
+
+function safeWrite(data, writable, callback, offset) {
+  offset = offset || 0;
+  const chunkSize = 512;
+
+  if(data.length <= offset) {
+    callback();
+    return;
+  }
+
+  let cb = () => {
+    safeWrite(data, writable, callback, offset + chunkSize);
+  }
+  if(!writable.write(data)) {
+    writable.once('drain', cb);
+  } else {
+    process.nextTick(cb);
+  }
+}
+
 function exec(args, options) {
   let {timeout, stdin} = options || {}
   timeout = timeout || 0;
@@ -26,8 +47,9 @@ function exec(args, options) {
         acc({stdout, stderr});
     });
     if(stdin)
-      p.stdin.write(stdin);
-    p.stdin.end();
+      safeWrite(stdin, p.stdin, () => p.stdin.end());
+    else
+      p.stdin.end();
   });
 }
 
