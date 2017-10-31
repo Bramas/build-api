@@ -38,7 +38,7 @@ function safeWrite(data, writable, callback, offset) {
     console.log('write and drain', offset);
   } else {
     setTimeout(cb, 10);
-    process.nextTick(cb);
+    //process.nextTick(cb);
   }
 }
 
