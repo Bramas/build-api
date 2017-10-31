@@ -27,6 +27,7 @@ function exec(args, options) {
     });
     if(stdin)
       p.stdin.write(stdin);
+    p.stdin.end();
   });
 }
 
