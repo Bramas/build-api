@@ -20,9 +20,9 @@ function safeWrite(data, writable, callback, offset) {
   const chunkSize = 512;
   if(offset === 0) {
     writable.__closed =false;
-    writable.once('close', () => { writable.__closed = true; });
-    writable.once('finish', () => { writable.__closed = true; });
-    writable.once('error', (e) => { console.log(e); writable.__closed = true; });
+    writable.once('close', () => { console.log('close'); writable.__closed = true; });
+    writable.once('finish', () => { console.log('finish'); writable.__closed = true; });
+    writable.once('error', (e) => { console.log('onError', e); writable.__closed = true; });
   }
 
   if(data.length <= offset) {
@@ -34,7 +34,7 @@ function safeWrite(data, writable, callback, offset) {
   let cb = () => {
     safeWrite(data, writable, callback, offset + chunkSize);
   }
-  if(!writable.write(data.slice(offset, offset + chunkSize, (e) => { console.log(e); }))) {
+  if(!writable.write(data.slice(offset, offset + chunkSize, (e) => { console.log('write cb', e); }))) {
     writable.once('drain', cb);
     console.log('write and drain', offset);
   } else {
