@@ -25,19 +25,19 @@ function safeWrite(data, writable, callback, offset) {
     writable.once('error', (e) => { console.log('onError', e); writable.__closed = true; });
   }
 
-  if(data.length <= offset) {
+  if(data.length <= offset || writable.__closed) {
     callback();
     return;
   }
-  console.log(writable.__closed);
 
   let cb = () => {
     safeWrite(data, writable, callback, offset + chunkSize);
   }
-  if(!writable.write(data.slice(offset, offset + chunkSize, (e) => { console.log('write cb', e); }))) {
+  if(!writable.write(data.slice(offset, offset + chunkSize))) {
     writable.once('drain', cb);
     console.log('write and drain', offset);
   } else {
+    setTimeout(cb, 10);
     process.nextTick(cb);
   }
 }
