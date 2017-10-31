@@ -23,6 +23,7 @@ function safeWrite(data, writable, callback, offset) {
     callback();
     return;
   }
+  console.log(writable._writableState);
 
   let cb = () => {
     safeWrite(data, writable, callback, offset + chunkSize);
