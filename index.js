@@ -34,7 +34,7 @@ app.post('/build', async function (req, res) {
 	await fs.mkdir(tmppath);
 	var dataStream;
 	if(req.body.url) {
-	  request.get(req.body.url);
+	  dataStream = request.get(req.body.url);
 	}
 	else {
 	  dataStream = new stream.PassThrough();
