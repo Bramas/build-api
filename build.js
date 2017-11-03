@@ -68,27 +68,29 @@ async function cleanLocalFiles(tmpWD, files) {
 /**
 * @param timeout in second, for the execution of the program
 */
-module.exports = async function(tmpWD, timeout, target, tests) {
+module.exports = async function({wd, timeout, target, make, tests}) {
   if(target.match(/[^\w\-\_]/)) {
     throw new Error('the target is not acceptable');
     return; 
   }
+  make = make || ('make '+target);
   const result = {};
   try {
-    result.compilation = await runDockerCommand('make '+target, tmpWD, 60);
+    result.compilation = await runDockerCommand(make, wd, 60);
     if(result.compilation.error) return result;
 
     if(tests.length > 0) {
       result.execution = [];
       for(var i in tests) {
-	await writeLocalFiles(tmpWD, tests[i].localFiles);
+	await writeLocalFiles(wd, tests[i].localFiles);
 	let args = tests[i].args || '';
 	let stdin = tests[i].stdin || null;
-        result.execution.push(await runDockerCommand('./'+target+' '+args, tmpWD, timeout, stdin));
+	let cmd = tests[i].cmd || ('./'+target+' '+args);
+        result.execution.push(await runDockerCommand(cmd, wd, timeout, stdin));
 	await cleanLocalFiles(tmpWD, tests[i].localFiles);
       }
     } else {
-      result.execution = await runDockerCommand('./'+target, tmpWD, timeout);
+      result.execution = await runDockerCommand('./'+target, wd, timeout);
     }
   } catch(e) {
     console.error(e);

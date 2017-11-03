@@ -52,7 +52,13 @@ app.post('/build', async function (req, res) {
                             await fs.writeFile(path.join(tmppath,name), new Buffer(req.body.files[name], 'base64'));
 			  }
                         }
-			const result = await build(tmppath, 3, target, req.body.tests);
+			const result = await build({
+				wd:tmppath, 
+				timeout:3, 
+				target:target,
+				make: req.body.make, 
+				tests:req.body.tests
+			});
   			await fs.remove(tmppath);
   			res.send(JSON.stringify(result, null, 2));
 		} catch(e) {
