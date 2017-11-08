@@ -135,8 +135,8 @@ module.exports = async function({wd, timeout, target, make, tests}) {
 	let stdin = tests[i].stdin || null;
 	let test_timeout = tests[i].timeout || 3;
 	let cmd = tests[i].cmd || ('./'+target+' '+args);
-        result.execution.push(await runDockerCommand(cmd, tmpWD, test_timeout, stdin));
-	await cleanLocalFiles(tmpWD, tests[i].localFiles);
+        result.execution.push(await runDockerCommand(cmd, wd, test_timeout, stdin));
+	await cleanLocalFiles(wd, tests[i].localFiles);
       }
     } else {
       result.execution = await runDockerCommand('./'+target, wd, timeout);
