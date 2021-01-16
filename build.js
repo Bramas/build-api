@@ -7,7 +7,7 @@ const memoryLimit = process.env.MEMORY_LIMIT ? '--memory='+process.env.MEMORY_LI
 const RUN = 'docker run --name {2} --rm -v {1}:/var/src '+memoryLimit+' --memory-swap=-1 -i buildapi';
 
 function runArgs(name, folder, args) {
-        let r = ['run', '--name', name, '--rm', '-v', folder+':/var/src', '-i', 'buildapi', 'sh', '/usr/bin/run-in'];
+        let r = ['run', '--name', name, '--rm', '-v', folder+':/var/src', '-i', 'buildapi', 'bash', 'run-in.sh'];
         for(i in args)
                 r.push(args[i]);
         return r;
@@ -59,6 +59,41 @@ function exec(args, options) {
   });
 }
 
+function cmdLineToArray(line) {
+        let args = [];
+        let bufferLine = null;
+        let waitForQuotes = false;
+        for(let i = 0; i < line.length; i++){
+                if(line[i] === ' ' && bufferLine === null) {
+                        continue;
+                }
+                if(line[i] === ' ' && !waitForQuotes) {
+                        args.push(bufferLine);
+                        bufferLine = null;
+                        continue;
+                }
+                if(line[i] === '"') {
+                        if(waitForQuotes){
+                                args.push(bufferLine);
+                                bufferLine = null;
+                                waitForQuotes = false;                                
+				continue;
+                        }
+                        waitForQuotes = true;
+                        continue;
+                }
+                if(bufferLine===null) {
+                        bufferLine = '';
+                }
+                bufferLine += line[i];
+
+        }
+        if(bufferLine) {
+                args.push(bufferLine);
+        }
+        return args;
+}
+
 async function runDockerCommand(cmd, workingDirectory, timeout, stdin) {
 
   const nonce = (await crypto.randomBytes(25)).toString('hex');
@@ -79,7 +114,7 @@ async function runDockerCommand(cmd, workingDirectory, timeout, stdin) {
     stdinFile = workingDirectory+'/stdin';
     await fs.writeFile(stdinFile, stdin);
   }*/
-  const args = runArgs(containerName, workingDirectory, cmd.split(' ').filter(e => e.length != 0))
+  const args = runArgs(containerName, workingDirectory, cmdLineToArray(cmd));//cmd.split(' ').filter(e => e.length != 0))
   console.log('runDockerCommand', cmd);
   let startingTime = process.hrtime();
   const {stdout, stderr, error} = await exec(args, {timeout, stdin});
@@ -124,6 +159,9 @@ module.exports = async function({wd, timeout, target, make, tests}) {
   make = make || ('make '+target);
   const result = {};
   try {
+
+    console.log(await fs.copy('./run.sh', wd+'/run-in.sh'));
+
     result.compilation = await runDockerCommand(make, wd, 60);
     if(result.compilation.error) return result;
 
@@ -133,6 +171,9 @@ module.exports = async function({wd, timeout, target, make, tests}) {
 	await writeLocalFiles(wd, tests[i].localFiles);
 	let args = tests[i].args || '';
 	let stdin = tests[i].stdin || null;
+	if(!stdin && tests[i].stdinFile) {
+		stdin = await fs.readFile(wd+'/'+tests[i].stdinFile);
+	} 
 	let test_timeout = tests[i].timeout || 3;
 	let cmd = tests[i].cmd || ('./'+target+' '+args);
         result.execution.push(await runDockerCommand(cmd, wd, test_timeout, stdin));
